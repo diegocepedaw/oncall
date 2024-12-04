@@ -384,6 +384,10 @@ def on_post(req, resp, team, roster):
         if 'start' not in sev or 'duration' not in sev:
             raise HTTPBadRequest('invalid schedule',
                                  'schedule event requires both start and duration fields')
+        if sev['start'] is None:
+            raise HTTPBadRequest('invalid schedule', 'schedule event start cannot be null')
+        if sev['duration'] is None or sev['duration'] <= 0:
+            raise HTTPBadRequest('invalid schedule', 'schedule event duration must be positive')
 
     if 'auto_populate_threshold' not in data:
         # default to autopopulate 3 weeks forward
@@ -413,6 +417,7 @@ def on_post(req, resp, team, roster):
     connection = db.connect()
     cursor = connection.cursor(db.DictCursor)
     try:
+        print("\n\n\n ### data: ", data)
         cursor.execute(insert_schedule, data)
         schedule_id = cursor.lastrowid
         insert_schedule_events(schedule_id, schedule_events, cursor)

@@ -40,6 +40,18 @@ def test_api_v0_schedules(team, roster, role):
     assert re.status_code == 201
     schedule_id = str(re.json()['id'])
 
+    # test create schedule
+    events = [{'start': None, 'duration': 12 * HOUR}]
+    re = requests.post(api_v0('teams/%s/rosters/%s/schedules' % (team_name, roster_name)),
+                       json={
+                           'role': role_name,
+                           'events': events,
+                           'advanced_mode': 1
+    })
+    assert re.status_code == 400
+    assert re.json()['error']['message'] == 'invalid schedule'
+    assert re.json()['error']['details'] == 'schedule event duration must be positive'
+
     # verify schedule created properly
     re = requests.get(api_v0('teams/%s/rosters/%s/schedules' % (team_name, roster_name)))
     assert re.status_code == 200
