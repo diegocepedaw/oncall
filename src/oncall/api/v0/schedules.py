@@ -417,7 +417,6 @@ def on_post(req, resp, team, roster):
     connection = db.connect()
     cursor = connection.cursor(db.DictCursor)
     try:
-        print("\n\n\n ### data: ", data)
         cursor.execute(insert_schedule, data)
         schedule_id = cursor.lastrowid
         insert_schedule_events(schedule_id, schedule_events, cursor)
