@@ -448,4 +448,4 @@ def on_post(req, resp, team, roster):
         resp.body = json_dumps({'id': schedule_id})
     except Exception as e:
         print("##### schedules exception", str(e))
-        raise HTTPError('failed the schedule', str(e))
+        raise HTTPError('500 Unexpected error', 'IntegrityError', str(e))
