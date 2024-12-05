@@ -242,52 +242,54 @@ def test_api_v0_populate_invalid(user, team, roster, role, schedule):
 
 @prefix('test_v0_round_robin')
 def test_api_v0_round_robin(user, team, roster, role, schedule, event):
-    # user_name = user.create()
-    # user_name_2 = user.create()
-    # user_name_3 = user.create()
-    # team_name = team.create()
-    # role_name = role.create()
-    # roster_name = roster.create(team_name)
-    # user.add_to_roster(user_name, team_name, roster_name)
-    # user.add_to_roster(user_name_2, team_name, roster_name)
-    # user.add_to_roster(user_name_3, team_name, roster_name)
-    # schedule_id = schedule.create(team_name,
-    #                               roster_name,
-    #                               {'role': role_name,
-    #                                'events': [{'start': 0, 'duration': 604800}],
-    #                                'advanced_mode': 0,
-    #                                'auto_populate_threshold': 28,
-    #                                'scheduler': {'name': 'round-robin',
-    #                                              'data': [user_name, user_name_2, user_name_3]}})
+    user_name = user.create()
+    user_name_2 = user.create()
+    user_name_3 = user.create()
+    team_name = team.create()
+    role_name = role.create()
+    roster_name = roster.create(team_name)
+    user.add_to_roster(user_name, team_name, roster_name)
+    user.add_to_roster(user_name_2, team_name, roster_name)
+    user.add_to_roster(user_name_3, team_name, roster_name)
+    schedule_id = schedule.create(team_name,
+                                  roster_name,
+                                  {'role': role_name,
+                                   'events': [{'start': 0, 'duration': 604800}],
+                                   'advanced_mode': 0,
+                                   'auto_populate_threshold': 28,
+                                   'scheduler': {'name': 'round-robin',
+                                                 'data': [user_name, user_name_2, user_name_3]}})
 
-    # def clean_up():
-    #     re = requests.get(api_v0('events?team='+team_name))
-    #     for ev in re.json():
-    #         requests.delete(api_v0('events/%d' % ev['id']))
+    def clean_up():
+        re = requests.get(api_v0('events?team='+team_name))
+        for ev in re.json():
+            requests.delete(api_v0('events/%d' % ev['id']))
 
-    # clean_up()
+    clean_up()
 
-    # start = time.time()
-    # # Create an event for user 1
-    # event.create({'start': start,
-    #               'end': start + 1000,
-    #               'user': user_name,
-    #               'team': team_name,
-    #               'role': role_name})
+    start = time.time()
+    # Create an event for user 1
+    event.create({'start': start,
+                  'end': start + 1000,
+                  'user': user_name,
+                  'team': team_name,
+                  'role': role_name})
 
-    # re = requests.post(api_v0('schedules/%s/populate' % schedule_id), json = {'start': start + 2000})
-    # assert re.status_code == 200
+    re = requests.post(api_v0('schedules/%s/populate' % schedule_id), json={'start': start + 2000})
+    print(f"Status Code: {re.status_code}")
+    print("Response Content:")
+    print(re.text)
+    assert re.status_code == 200
 
-    # re = requests.get(api_v0('events?team=%s' % team_name))
-    # assert re.status_code == 200
-    # events = re.json()
-    # # Check that newly populated events start with user 2, then loop back to user 1
-    # assert events[1]['user'] == user_name_2
-    # assert events[2]['user'] == user_name_3
-    # assert events[3]['user'] == user_name
+    re = requests.get(api_v0('events?team=%s' % team_name))
+    assert re.status_code == 200
+    events = re.json()
+    # Check that newly populated events start with user 2, then loop back to user 1
+    assert events[1]['user'] == user_name_2
+    assert events[2]['user'] == user_name_3
+    assert events[3]['user'] == user_name
 
-    # clean_up()
-    pass
+    clean_up()
 
 
 # Test skipping over matching events
