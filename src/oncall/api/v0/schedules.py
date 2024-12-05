@@ -384,10 +384,10 @@ def on_post(req, resp, team, roster):
         if 'start' not in sev or 'duration' not in sev:
             raise HTTPBadRequest('invalid schedule',
                                  'schedule event requires both start and duration fields')
-        # if sev.get('start') is None:
-        #     raise HTTPBadRequest('invalid schedule', 'schedule event start cannot be null')
-        # if sev.get('duration') is None or sev['duration'] <= 0:
-        #     raise HTTPBadRequest('invalid schedule', 'schedule event duration must be positive')
+        if sev.get('start') is None:
+            raise HTTPBadRequest('invalid schedule', 'schedule event start cannot be null')
+        if sev.get('duration') is None or sev['duration'] <= 0:
+            raise HTTPBadRequest('invalid schedule', 'schedule event duration must be positive')
 
     if 'auto_populate_threshold' not in data:
         # default to autopopulate 3 weeks forward
