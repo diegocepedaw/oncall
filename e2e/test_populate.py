@@ -250,7 +250,6 @@ def test_api_v0_round_robin(user, team, roster, role, schedule, event):
     user.add_to_roster(user_name, team_name, roster_name)
     user.add_to_roster(user_name_2, team_name, roster_name)
     user.add_to_roster(user_name_3, team_name, roster_name)
-    print("\n\n\nQQQQ ", team_name, roster_name, role_name, user_name, user_name_2, user_name_3, "\n\n\n")
     schedule_id = schedule.create(team_name,
                                   roster_name,
                                   {'role': role_name,
@@ -276,9 +275,6 @@ def test_api_v0_round_robin(user, team, roster, role, schedule, event):
                   'role': role_name})
 
     re = requests.post(api_v0('schedules/%s/populate' % schedule_id), json={'start': start + 2000})
-    print(f"Status Code: {re.status_code}")
-    print("Response Content:")
-    print(re.text)
     assert re.status_code == 200
 
     re = requests.get(api_v0('events?team=%s' % team_name))

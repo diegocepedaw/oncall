@@ -370,94 +370,82 @@ def on_post(req, resp, team, roster):
     :statuscode 400: Missing required parameters
     :statuscode 422: Invalid roster specified
     '''
-    try:
-        data = load_json_body(req)
-        data['team'] = unquote(team)
-        data['roster'] = unquote(roster)
-        check_team_auth(data['team'], req)
-        missing_params = required_params - set(data.keys())
-        if missing_params:
+
+    data = load_json_body(req)
+    data['team'] = unquote(team)
+    data['roster'] = unquote(roster)
+    check_team_auth(data['team'], req)
+    missing_params = required_params - set(data.keys())
+    if missing_params:
+        raise HTTPBadRequest('invalid schedule',
+                                'missing required parameters: %s' % ', '.join(missing_params))
+
+    schedule_events = data.pop('events')
+    for sev in schedule_events:
+        if 'start' not in sev or 'duration' not in sev:
             raise HTTPBadRequest('invalid schedule',
-                                 'missing required parameters: %s' % ', '.join(missing_params))
+                                    'schedule event requires both start and duration fields')
+        if sev.get('start') is None:
+            raise HTTPBadRequest('invalid schedule', 'schedule event start cannot be null')
+        if sev.get('duration') is None or sev['duration'] <= 0:
+            raise HTTPBadRequest('invalid schedule', 'schedule event duration must be positive')
 
-        schedule_events = data.pop('events')
-        for sev in schedule_events:
-            if 'start' not in sev or 'duration' not in sev:
-                raise HTTPBadRequest('invalid schedule',
-                                     'schedule event requires both start and duration fields')
-            if sev.get('start') is None:
-                raise HTTPBadRequest('invalid schedule', 'schedule event start cannot be null')
-            if sev.get('duration') is None or sev['duration'] <= 0:
-                raise HTTPBadRequest('invalid schedule', 'schedule event duration must be positive')
+    if 'auto_populate_threshold' not in data:
+        # default to autopopulate 3 weeks forward
+        data['auto_populate_threshold'] = 21
 
-        if 'auto_populate_threshold' not in data:
-            # default to autopopulate 3 weeks forward
-            data['auto_populate_threshold'] = 21
+    if 'scheduler' not in data:
+        # default to "default" scheduling algorithm
+        data['scheduler_name'] = 'default'
+    else:
+        data['scheduler_name'] = data['scheduler'].get('name', 'default')
+        scheduler_data = data['scheduler'].get('data')
 
-        if 'scheduler' not in data:
-            # default to "default" scheduling algorithm
-            data['scheduler_name'] = 'default'
-        else:
-            data['scheduler_name'] = data['scheduler'].get('name', 'default')
-            scheduler_data = data['scheduler'].get('data')
+    if not data['advanced_mode']:
+        if not validate_simple_schedule(schedule_events):
+            raise HTTPBadRequest('invalid schedule', 'invalid advanced mode setting')
 
-        if not data['advanced_mode']:
-            if not validate_simple_schedule(schedule_events):
-                raise HTTPBadRequest('invalid schedule', 'invalid advanced mode setting')
+    insert_schedule = '''INSERT INTO `schedule` (`roster_id`,`team_id`,`role_id`,
+                                                `auto_populate_threshold`, `advanced_mode`, `scheduler_id`)
+                        VALUES ((SELECT `roster`.`id` FROM `roster`
+                                    JOIN `team` ON `roster`.`team_id` = `team`.`id`
+                                    WHERE `roster`.`name` = %(roster)s AND `team`.`name` = %(team)s),
+                                (SELECT `id` FROM `team` WHERE `name` = %(team)s),
+                                (SELECT `id` FROM `role` WHERE `name` = %(role)s),
+                                %(auto_populate_threshold)s,
+                                %(advanced_mode)s,
+                                (SELECT `id` FROM `scheduler` WHERE `name` = %(scheduler_name)s))'''
+    connection = db.connect()
+    cursor = connection.cursor(db.DictCursor)
+    try:
+        scheduler_arg = data.pop('scheduler', None)
+        cursor.execute(insert_schedule, data)
+        if scheduler_arg:
+            data['scheduler'] = scheduler_arg
+        schedule_id = cursor.lastrowid
+        insert_schedule_events(schedule_id, schedule_events, cursor)
 
-        print("\n\n\n#####1", data, "\n\n\n")
+        if data['scheduler_name'] == 'round-robin':
+            params = [(schedule_id, name, idx) for idx, name in enumerate(scheduler_data)]
+            cursor.executemany('''INSERT INTO `schedule_order` (`schedule_id`, `user_id`, `priority`)
+                                VALUES (%s, (SELECT `id` FROM `user` WHERE `name` = %s), %s)''',
+                                params)
+    except db.IntegrityError as e:
+        err_msg = str(e.args[1])
+        if err_msg == 'Column \'roster_id\' cannot be null':
+            err_msg = 'roster "%s" not found' % roster
+        elif err_msg == 'Column \'role_id\' cannot be null':
+            err_msg = 'role not found'
+        elif err_msg == 'Column \'scheduler_id\' cannot be null':
+            err_msg = 'scheduler not found'
+        elif err_msg == 'Column \'team_id\' cannot be null':
+            err_msg = 'team "%s" not found' % team
+        raise HTTPError('422 Unprocessable Entity', 'IntegrityError', err_msg)
+    else:
+        connection.commit()
+    finally:
+        cursor.close()
+        connection.close()
 
-        insert_schedule = '''INSERT INTO `schedule` (`roster_id`,`team_id`,`role_id`,
-                                                    `auto_populate_threshold`, `advanced_mode`, `scheduler_id`)
-                            VALUES ((SELECT `roster`.`id` FROM `roster`
-                                        JOIN `team` ON `roster`.`team_id` = `team`.`id`
-                                        WHERE `roster`.`name` = %(roster)s AND `team`.`name` = %(team)s),
-                                    (SELECT `id` FROM `team` WHERE `name` = %(team)s),
-                                    (SELECT `id` FROM `role` WHERE `name` = %(role)s),
-                                    %(auto_populate_threshold)s,
-                                    %(advanced_mode)s,
-                                    (SELECT `id` FROM `scheduler` WHERE `name` = %(scheduler_name)s))'''
-        connection = db.connect()
-        cursor = connection.cursor(db.DictCursor)
-        try:
-            print("\n\n\n#####1.1 ", insert_schedule, data, "\n\n\n")
-            scheduler_arg = data.pop('scheduler', None)
-            cursor.execute(insert_schedule, data)
-            if scheduler_arg:
-                data['scheduler'] = scheduler_arg
-            schedule_id = cursor.lastrowid
-            print("\n\n\n#####2", schedule_id, schedule_events, data, "\n\n\n")
-            insert_schedule_events(schedule_id, schedule_events, cursor)
-
-            print("\n\n\n#####3")
-            if data['scheduler_name'] == 'round-robin':
-                params = [(schedule_id, name, idx) for idx, name in enumerate(scheduler_data)]
-                print("\n\n\n#####4", params, "\n\n\n")
-                cursor.executemany('''INSERT INTO `schedule_order` (`schedule_id`, `user_id`, `priority`)
-                                    VALUES (%s, (SELECT `id` FROM `user` WHERE `name` = %s), %s)''',
-                                   params)
-            print("\n\n\n#####5")
-        except db.IntegrityError as e:
-            err_msg = str(e.args[1])
-            if err_msg == 'Column \'roster_id\' cannot be null':
-                err_msg = 'roster "%s" not found' % roster
-            elif err_msg == 'Column \'role_id\' cannot be null':
-                err_msg = 'role not found'
-            elif err_msg == 'Column \'scheduler_id\' cannot be null':
-                err_msg = 'scheduler not found'
-            elif err_msg == 'Column \'team_id\' cannot be null':
-                err_msg = 'team "%s" not found' % team
-            raise HTTPError('422 Unprocessable Entity', 'IntegrityError', err_msg)
-        else:
-            connection.commit()
-        finally:
-            cursor.close()
-            connection.close()
-
-        resp.status = HTTP_201
-        resp.body = json_dumps({'id': schedule_id})
-    except Exception as e:
-        print("##### schedules exception", str(e))
-        if isinstance(e, HTTPBadRequest):
-            raise e
-        raise HTTPError('500 Unexpected error', 'IntegrityError', str(e))
+    resp.status = HTTP_201
+    resp.body = json_dumps({'id': schedule_id})
