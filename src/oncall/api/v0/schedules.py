@@ -422,7 +422,7 @@ def on_post(req, resp, team, roster):
         connection = db.connect()
         cursor = connection.cursor(db.DictCursor)
         try:
-            print("\n\n\n#####1.1", insert_schedule, data, "\n\n\n")
+            print("\n\n\n#####1.1 ", insert_schedule, data, "\n\n\n")
             clean_data = data.copy()
             clean_data.pop('scheduler')
             cursor.execute(insert_schedule, clean_data)
