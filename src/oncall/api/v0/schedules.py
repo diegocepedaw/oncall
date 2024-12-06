@@ -407,8 +407,6 @@ def on_post(req, resp, team, roster):
 
         print("\n\n\n#####1", data, "\n\n\n")
 
-        # 1 {'role': 'test_v0_round_robin_role_0', 'advanced_mode': 0, 'auto_populate_threshold': 28, 'scheduler': {'name': 'round-robin', 'data': ['test_v0_round_robin_user_0', 'test_v0_round_robin_user_1', 'test_v0_round_robin_user_2']}, 'team': 'test_v0_round_robin_team_0', 'roster': 'test_v0_round_robin_roster_0', 'scheduler_name': 'round-robin'}
-
         insert_schedule = '''INSERT INTO `schedule` (`roster_id`,`team_id`,`role_id`,
                                                     `auto_populate_threshold`, `advanced_mode`, `scheduler_id`)
                             VALUES ((SELECT `roster`.`id` FROM `roster`
