@@ -370,6 +370,7 @@ def on_post(req, resp, team, roster):
     :statuscode 400: Missing required parameters
     :statuscode 422: Invalid roster specified
     '''
+
     data = load_json_body(req)
     data['team'] = unquote(team)
     data['roster'] = unquote(roster)
@@ -384,6 +385,10 @@ def on_post(req, resp, team, roster):
         if 'start' not in sev or 'duration' not in sev:
             raise HTTPBadRequest('invalid schedule',
                                  'schedule event requires both start and duration fields')
+        if sev.get('start') is None:
+            raise HTTPBadRequest('invalid schedule', 'schedule event start cannot be null')
+        if sev.get('duration') is None or sev['duration'] <= 0:
+            raise HTTPBadRequest('invalid schedule', 'schedule event duration must be positive')
 
     if 'auto_populate_threshold' not in data:
         # default to autopopulate 3 weeks forward
@@ -401,26 +406,29 @@ def on_post(req, resp, team, roster):
             raise HTTPBadRequest('invalid schedule', 'invalid advanced mode setting')
 
     insert_schedule = '''INSERT INTO `schedule` (`roster_id`,`team_id`,`role_id`,
-                                                 `auto_populate_threshold`, `advanced_mode`, `scheduler_id`)
-                         VALUES ((SELECT `roster`.`id` FROM `roster`
-                                      JOIN `team` ON `roster`.`team_id` = `team`.`id`
-                                      WHERE `roster`.`name` = %(roster)s AND `team`.`name` = %(team)s),
-                                 (SELECT `id` FROM `team` WHERE `name` = %(team)s),
-                                 (SELECT `id` FROM `role` WHERE `name` = %(role)s),
-                                 %(auto_populate_threshold)s,
-                                 %(advanced_mode)s,
-                                 (SELECT `id` FROM `scheduler` WHERE `name` = %(scheduler_name)s))'''
+                                                `auto_populate_threshold`, `advanced_mode`, `scheduler_id`)
+                        VALUES ((SELECT `roster`.`id` FROM `roster`
+                                    JOIN `team` ON `roster`.`team_id` = `team`.`id`
+                                    WHERE `roster`.`name` = %(roster)s AND `team`.`name` = %(team)s),
+                                (SELECT `id` FROM `team` WHERE `name` = %(team)s),
+                                (SELECT `id` FROM `role` WHERE `name` = %(role)s),
+                                %(auto_populate_threshold)s,
+                                %(advanced_mode)s,
+                                (SELECT `id` FROM `scheduler` WHERE `name` = %(scheduler_name)s))'''
     connection = db.connect()
     cursor = connection.cursor(db.DictCursor)
     try:
+        scheduler_arg = data.pop('scheduler', None)
         cursor.execute(insert_schedule, data)
+        if scheduler_arg:
+            data['scheduler'] = scheduler_arg
         schedule_id = cursor.lastrowid
         insert_schedule_events(schedule_id, schedule_events, cursor)
 
         if data['scheduler_name'] == 'round-robin':
             params = [(schedule_id, name, idx) for idx, name in enumerate(scheduler_data)]
             cursor.executemany('''INSERT INTO `schedule_order` (`schedule_id`, `user_id`, `priority`)
-                                  VALUES (%s, (SELECT `id` FROM `user` WHERE `name` = %s), %s)''',
+                                VALUES (%s, (SELECT `id` FROM `user` WHERE `name` = %s), %s)''',
                                params)
     except db.IntegrityError as e:
         err_msg = str(e.args[1])

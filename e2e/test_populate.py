@@ -274,7 +274,7 @@ def test_api_v0_round_robin(user, team, roster, role, schedule, event):
                   'team': team_name,
                   'role': role_name})
 
-    re = requests.post(api_v0('schedules/%s/populate' % schedule_id), json = {'start': start + 2000})
+    re = requests.post(api_v0('schedules/%s/populate' % schedule_id), json={'start': start + 2000})
     assert re.status_code == 200
 
     re = requests.get(api_v0('events?team=%s' % team_name))
