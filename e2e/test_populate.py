@@ -251,6 +251,7 @@ def test_api_v0_round_robin(user, team, roster, role, schedule, event):
     user.add_to_roster(user_name, team_name, roster_name)
     user.add_to_roster(user_name_2, team_name, roster_name)
     user.add_to_roster(user_name_3, team_name, roster_name)
+    print("\n\n\nQQQQ ", team_name, roster_name, role_name, user_name, user_name_2, user_name_3, "\n\n\n")
     schedule_id = schedule.create(team_name,
                                   roster_name,
                                   {'role': role_name,
