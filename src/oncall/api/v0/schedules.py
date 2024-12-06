@@ -378,13 +378,13 @@ def on_post(req, resp, team, roster):
     missing_params = required_params - set(data.keys())
     if missing_params:
         raise HTTPBadRequest('invalid schedule',
-                                'missing required parameters: %s' % ', '.join(missing_params))
+                             'missing required parameters: %s' % ', '.join(missing_params))
 
     schedule_events = data.pop('events')
     for sev in schedule_events:
         if 'start' not in sev or 'duration' not in sev:
             raise HTTPBadRequest('invalid schedule',
-                                    'schedule event requires both start and duration fields')
+                                 'schedule event requires both start and duration fields')
         if sev.get('start') is None:
             raise HTTPBadRequest('invalid schedule', 'schedule event start cannot be null')
         if sev.get('duration') is None or sev['duration'] <= 0:
@@ -429,7 +429,7 @@ def on_post(req, resp, team, roster):
             params = [(schedule_id, name, idx) for idx, name in enumerate(scheduler_data)]
             cursor.executemany('''INSERT INTO `schedule_order` (`schedule_id`, `user_id`, `priority`)
                                 VALUES (%s, (SELECT `id` FROM `user` WHERE `name` = %s), %s)''',
-                                params)
+                               params)
     except db.IntegrityError as e:
         err_msg = str(e.args[1])
         if err_msg == 'Column \'roster_id\' cannot be null':
