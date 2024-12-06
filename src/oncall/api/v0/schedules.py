@@ -421,9 +421,9 @@ def on_post(req, resp, team, roster):
         cursor = connection.cursor(db.DictCursor)
         try:
             print("\n\n\n#####1.1 ", insert_schedule, data, "\n\n\n")
-            clean_data = data.copy()
-            clean_data.pop('scheduler')
-            cursor.execute(insert_schedule, clean_data)
+            scheduler_arg = data.pop('scheduler')
+            cursor.execute(insert_schedule, data)
+            data['scheduler'] = scheduler_arg
             schedule_id = cursor.lastrowid
             print("\n\n\n#####2", schedule_id, schedule_events, "\n\n\n")
             insert_schedule_events(schedule_id, schedule_events, cursor)
