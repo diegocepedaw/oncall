@@ -405,6 +405,8 @@ def on_post(req, resp, team, roster):
             if not validate_simple_schedule(schedule_events):
                 raise HTTPBadRequest('invalid schedule', 'invalid advanced mode setting')
 
+        print("\n\n\n#####1", data, "\n\n\n")
+
         insert_schedule = '''INSERT INTO `schedule` (`roster_id`,`team_id`,`role_id`,
                                                     `auto_populate_threshold`, `advanced_mode`, `scheduler_id`)
                             VALUES ((SELECT `roster`.`id` FROM `roster`
@@ -420,13 +422,17 @@ def on_post(req, resp, team, roster):
         try:
             cursor.execute(insert_schedule, data)
             schedule_id = cursor.lastrowid
+            print("\n\n\n#####2", schedule_id, schedule_events, "\n\n\n")
             insert_schedule_events(schedule_id, schedule_events, cursor)
 
+            print("\n\n\n#####3")
             if data['scheduler_name'] == 'round-robin':
                 params = [(schedule_id, name, idx) for idx, name in enumerate(scheduler_data)]
+                print("\n\n\n#####4", params, "\n\n\n")
                 cursor.executemany('''INSERT INTO `schedule_order` (`schedule_id`, `user_id`, `priority`)
                                     VALUES (%s, (SELECT `id` FROM `user` WHERE `name` = %s), %s)''',
                                    params)
+            print("\n\n\n#####5")
         except db.IntegrityError as e:
             err_msg = str(e.args[1])
             if err_msg == 'Column \'roster_id\' cannot be null':
@@ -447,7 +453,7 @@ def on_post(req, resp, team, roster):
         resp.status = HTTP_201
         resp.body = json_dumps({'id': schedule_id})
     except Exception as e:
+        print("##### schedules exception", str(e))
         if isinstance(e, HTTPBadRequest):
             raise e
-        print("##### schedules exception", str(e))
         raise HTTPError('500 Unexpected error', 'IntegrityError', str(e))
