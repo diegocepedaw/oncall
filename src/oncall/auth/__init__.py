@@ -9,7 +9,6 @@ import base64
 import importlib
 from urllib.parse import quote
 from falcon import HTTPUnauthorized, HTTPForbidden, Request
-from oncall.auth.modules import sso_debug
 from .. import db
 
 logger = logging.getLogger('oncall.auth')
