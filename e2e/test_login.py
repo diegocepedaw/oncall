@@ -116,10 +116,10 @@ class TestLogin(TestCase):
         sso_auth_manager = sso_debug.Authenticator(self.config)
         print("\n\n#### 3", self.user_name)
         re = self.simulate_get('/dummy/' + self.user_name, headers={'SSO-DEBUG-HEADER': 'foo_user'})
+        assert re.text == 'foo'
         assert re.status_code == 200
 
         re = self.simulate_get('/dummy/' + self.user_name, headers={'UNRELATED_HEADER': self.user_name})
-        assert re.text == 'foo'
         assert re.status_code == 401
         sso_auth_manager = None
 
