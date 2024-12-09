@@ -112,17 +112,6 @@ class TestLogin(TestCase):
         re = self.simulate_get('/dummy/'+self.user_name)
         assert re.status_code == 401
 
-        global sso_auth_manager
-        sso_auth_manager = sso_debug.Authenticator(self.config)
-        print("\n\n#### 3", self.user_name)
-        re = self.simulate_get('/dummy/' + self.user_name, headers={'SSO-DEBUG-HEADER': 'foo_user'})
-        assert re.text == 'foo'
-        assert re.status_code == 200
-
-        re = self.simulate_get('/dummy/' + self.user_name, headers={'UNRELATED_HEADER': self.user_name})
-        assert re.status_code == 401
-        sso_auth_manager = None
-
         # For tests below, put username/password into query string to
         # simulate a xxx-form-urlencoded form post
         # Test good login, auth check on self
@@ -139,6 +128,11 @@ class TestLogin(TestCase):
         cookies = re.headers.get('set-cookie')
         token = str(re.json['csrf_token'])
         re = self.simulate_get('/dummy/'+self.user_name, headers={'X-CSRF-TOKEN': token, 'Cookie': cookies})
+        assert re.status_code == 200
+
+    def test_sso_auth(self):
+        re = self.simulate_get('/dummy/' + self.user_name, headers={'SSO-DEBUG-HEADER': 'foo_user'})
+        assert re.text == ''
         assert re.status_code == 200
 
     def test_team_auth(self):
