@@ -214,7 +214,7 @@ def _authenticate_user(req):
         cursor.close()
         connection.close()
     except KeyError:
-        raise HTTPUnauthorized('Unauthorized', 'User must be logged in', '')
+        raise HTTPUnauthorized('Unauthorized', 'User must be logged in sso_auth_manager=%s' % sso_auth_manager, '')
 
 
 authenticate_user = _authenticate_user
