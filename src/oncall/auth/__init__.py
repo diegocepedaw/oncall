@@ -248,9 +248,13 @@ def init(application, config):
     global sso_auth_manager
     global authenticate_user
 
+    if config.get('sso_module'):
+        sso_auth = importlib.import_module(config['sso_module'])
+        sso_auth_manager = getattr(sso_auth, 'Authenticator')(config)
+
     if config.get('debug', False):
-        from oncall.auth.modules.sso_debug import Authenticator as sso_authenticator
-        sso_auth_manager = sso_authenticator()
+        # from oncall.auth.modules.sso_debug import Authenticator as sso_authenticator
+        # sso_auth_manager = sso_authenticator()
 
         print("### initializing debug auth config %s" % str(config), sso_auth_manager)
 
@@ -268,10 +272,6 @@ def init(application, config):
         check_calendar_auth = lambda x, y, **kwargs: True
         check_calendar_auth_by_id = lambda x, y: True
         debug_only = lambda function: function
-
-    if config.get('sso_module'):
-        sso_auth = importlib.import_module(config['sso_module'])
-        sso_auth_manager = getattr(sso_auth, 'Authenticator')(config)
 
     if config.get('docs') or config.get('require_auth'):
         # Replace login_required decorator with identity function for autodoc generation

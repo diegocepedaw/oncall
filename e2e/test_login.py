@@ -10,10 +10,6 @@ from oncall import db
 from oncall.auth import (
     login, logout, login_required, check_user_auth, check_team_auth
 )
-from oncall.auth.modules.sso_debug import Authenticator
-
-sso_auth_manager = Authenticator()
-
 
 class TestLogin(TestCase):
     config = {'auth': {'ldap_cert_path': 'ldap_cert.pem',
