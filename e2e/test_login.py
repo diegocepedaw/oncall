@@ -11,8 +11,10 @@ from oncall.auth import (
     login, logout, login_required, check_user_auth, check_team_auth
 )
 from oncall.auth.modules.sso_debug import Authenticator as sso_authenticator
+from oncall.auth import init as init_auth
 
 sso_auth_manager = sso_authenticator()
+config = None
 
 
 class TestLogin(TestCase):
@@ -67,6 +69,7 @@ class TestLogin(TestCase):
         api = falcon.App(middleware=[
             ReqBodyMiddleware(),
         ])
+        init_auth(api, config['auth'])
         api.req_options.auto_parse_form_urlencoded = False
         self.app = api
         self.app.add_route('/login', login)
@@ -111,7 +114,7 @@ class TestLogin(TestCase):
 
     def test_user_auth(self):
         # Test no login
-        re = self.simulate_get('/dummy/'+self.user_name)
+        re = self.simulate_get('/dummy/' + self.user_name)
         assert re.status_code == 401
 
         # For tests below, put username/password into query string to
@@ -121,7 +124,7 @@ class TestLogin(TestCase):
         assert re.status_code == 200
         cookies = re.headers.get('set-cookie')
         token = str(re.json['csrf_token'])
-        re = self.simulate_get('/dummy/'+self.user_name, headers={'X-CSRF-TOKEN': token, 'Cookie': cookies})
+        re = self.simulate_get('/dummy/' + self.user_name, headers={'X-CSRF-TOKEN': token, 'Cookie': cookies})
         assert re.status_code == 200
 
         # Test good login, auth check on manager
@@ -129,7 +132,7 @@ class TestLogin(TestCase):
         assert re.status_code == 200
         cookies = re.headers.get('set-cookie')
         token = str(re.json['csrf_token'])
-        re = self.simulate_get('/dummy/'+self.user_name, headers={'X-CSRF-TOKEN': token, 'Cookie': cookies})
+        re = self.simulate_get('/dummy/' + self.user_name, headers={'X-CSRF-TOKEN': token, 'Cookie': cookies})
         assert re.status_code == 200
 
     def test_sso_auth(self):
@@ -143,7 +146,7 @@ class TestLogin(TestCase):
         assert re.status_code == 200
         cookies = re.headers.get('set-cookie')
         token = str(re.json['csrf_token'])
-        re = self.simulate_get('/dummy2/'+self.team_name, headers={'X-CSRF-TOKEN': token, 'Cookie': cookies})
+        re = self.simulate_get('/dummy2/' + self.team_name, headers={'X-CSRF-TOKEN': token, 'Cookie': cookies})
         assert re.status_code == 200
 
     def test_logout(self):
@@ -158,7 +161,7 @@ class TestLogin(TestCase):
             # https://github.com/falconry/falcon/pull/957 is merged
             pass
         assert re.status_code == 200
-        re = self.simulate_get('/dummy/'+self.user_name, headers={'X-CSRF-TOKEN': token, 'Cookie': cookies})
+        re = self.simulate_get('/dummy/' + self.user_name, headers={'X-CSRF-TOKEN': token, 'Cookie': cookies})
         assert re.status_code == 401
 
     def test_csrf(self):
@@ -166,5 +169,5 @@ class TestLogin(TestCase):
         re = self.simulate_post('/login', body='username=%s&password=abc' % self.admin_name)
         assert re.status_code == 200
         cookies = re.headers.get('set-cookie')
-        re = self.simulate_get('/dummy2/'+self.team_name, headers={'X-CSRF-TOKEN': 'foo', 'Cookie': cookies})
+        re = self.simulate_get('/dummy2/' + self.team_name, headers={'X-CSRF-TOKEN': 'foo', 'Cookie': cookies})
         assert re.status_code == 401
