@@ -3,7 +3,7 @@
 
 
 class Authenticator(object):
-    def __init__(self, config):
+    def __init__(self, config=None):
         pass
 
     def authenticate(self, request):

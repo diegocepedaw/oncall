@@ -10,7 +10,9 @@ from oncall import db
 from oncall.auth import (
     login, logout, login_required, check_user_auth, check_team_auth
 )
-from oncall.auth.modules import sso_debug
+from oncall.auth.modules.sso_debug import Authenticator
+
+sso_auth_manager = Authenticator()
 
 
 class TestLogin(TestCase):
@@ -44,7 +46,7 @@ class TestLogin(TestCase):
         @login_required
         def on_get(self, req, resp, user):
             print('\n\n\n\n#### 1', req.headers)
-            sso_check = sso_debug.Authenticator({}).sso_auth_manager.authenticate(req)
+            sso_check = sso_auth_manager.authenticate(req)
             if sso_check:
                 return
             print("#### 2", sso_check, user)
