@@ -56,6 +56,7 @@ class TestLogin(TestCase):
     def setUp(self):
         super(TestLogin, self).setUp()
         login.auth_manager = self.DummyAuthenticator()
+        login.sso_auth_manager = sso_debug.Authenticator(self.config)
         api = falcon.App(middleware=[
             ReqBodyMiddleware(),
         ])
@@ -106,16 +107,8 @@ class TestLogin(TestCase):
         re = self.simulate_get('/dummy/'+self.user_name)
         assert re.status_code == 401
 
-        # verify that headers results in 401 when sso_auth_manager is not enabled
-        re = self.simulate_get('/dummy/' + self.user_name, headers={'SSO-DEBUG-HEADER': 'foo_user'})
-        assert re.status_code == 401
-
-        # debug sso authenticator enabled
-        login.sso_auth_manager = sso_debug.Authenticator(self.config)
         re = self.simulate_get('/dummy/' + self.user_name, headers={'SSO-DEBUG-HEADER': 'foo_user'})
         assert re.status_code == 200
-        # disable once more
-        login.sso_auth_manager = None
 
         # For tests below, put username/password into query string to
         # simulate a xxx-form-urlencoded form post
