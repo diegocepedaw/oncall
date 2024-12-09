@@ -42,8 +42,10 @@ class TestLogin(TestCase):
     class UserDummy(object):
         @login_required
         def on_get(self, req, resp, user):
+            print('\n\n\n\n#### 1', req.headers)
             if sso_debug.Authenticator({}).sso_auth_manager.authenticate(req):
                 return
+            print("#### 2")
             check_user_auth(user, req)
 
     class TeamDummy(object):
@@ -58,6 +60,7 @@ class TestLogin(TestCase):
     def setUp(self):
         super(TestLogin, self).setUp()
         login.auth_manager = self.DummyAuthenticator()
+        login.sso_auth_manager = sso_debug.Authenticator(self.config)
         api = falcon.App(middleware=[
             ReqBodyMiddleware(),
         ])
@@ -108,7 +111,8 @@ class TestLogin(TestCase):
         re = self.simulate_get('/dummy/'+self.user_name)
         assert re.status_code == 401
 
-        re = self.simulate_get('/dummy/' + self.user_name, headers={'SSO-DEBUG-HEADER': self.user_name})
+        print("\n\n#### 2", self.user_name)
+        re = self.simulate_get('/dummy/' + self.user_name, headers={'SSO-DEBUG-HEADER': 'foo_user'})
         assert re.status_code == 200
 
         re = self.simulate_get('/dummy/' + self.user_name, headers={'UNRELATED_HEADER': self.user_name})
