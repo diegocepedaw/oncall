@@ -17,7 +17,8 @@ class TestLogin(TestCase):
     config = {'auth': {'ldap_cert_path': 'ldap_cert.pem',
                        'ldap_url': 'ldaps://lca1-ldap-vip.corp.linkedin.com',
                        'ldap_user_suffix': '@linkedin.biz',
-                       'module': 'ldap'},
+                       'module': 'ldap',
+                       'sso_module': 'oncall.auth.modules.sso_debug'},
               'db': {'conn': {'kwargs': {'charset': 'utf8',
                                          'database': 'oncall-api',
                                          'echo': True,
@@ -43,9 +44,10 @@ class TestLogin(TestCase):
         @login_required
         def on_get(self, req, resp, user):
             print('\n\n\n\n#### 1', req.headers)
-            if sso_debug.Authenticator({}).sso_auth_manager.authenticate(req):
+            sso_check = sso_debug.Authenticator({}).sso_auth_manager.authenticate(req)
+            if sso_check:
                 return
-            print("#### 2")
+            print("#### 2", sso_check, user)
             check_user_auth(user, req)
 
     class TeamDummy(object):
@@ -60,7 +62,6 @@ class TestLogin(TestCase):
     def setUp(self):
         super(TestLogin, self).setUp()
         login.auth_manager = self.DummyAuthenticator()
-        login.sso_auth_manager = sso_debug.Authenticator(self.config)
         api = falcon.App(middleware=[
             ReqBodyMiddleware(),
         ])
@@ -111,12 +112,15 @@ class TestLogin(TestCase):
         re = self.simulate_get('/dummy/'+self.user_name)
         assert re.status_code == 401
 
-        print("\n\n#### 2", self.user_name)
+        global sso_auth_manager
+        sso_auth_manager = sso_debug.Authenticator(self.config)
+        print("\n\n#### 3", self.user_name)
         re = self.simulate_get('/dummy/' + self.user_name, headers={'SSO-DEBUG-HEADER': 'foo_user'})
         assert re.status_code == 200
 
         re = self.simulate_get('/dummy/' + self.user_name, headers={'UNRELATED_HEADER': self.user_name})
         assert re.status_code == 401
+        sso_auth_manager = None
 
         # For tests below, put username/password into query string to
         # simulate a xxx-form-urlencoded form post
