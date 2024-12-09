@@ -250,6 +250,7 @@ def init(application, config):
 
     if config.get('debug', False):
         sso_auth_manager = sso_debug.Authenticator(config)
+
         def authenticate_user_test_wrapper(req):
             try:
                 _authenticate_user(req)
