@@ -9,6 +9,7 @@ import base64
 import importlib
 from urllib.parse import quote
 from falcon import HTTPUnauthorized, HTTPForbidden, Request
+from oncall.auth.modules import sso_debug
 from .. import db
 
 logger = logging.getLogger('oncall.auth')
@@ -248,6 +249,7 @@ def init(application, config):
     global authenticate_user
 
     if config.get('debug', False):
+        sso_auth_manager = sso_debug.Authenticator(config)
         def authenticate_user_test_wrapper(req):
             try:
                 _authenticate_user(req)
