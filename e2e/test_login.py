@@ -14,27 +14,26 @@ from oncall.auth.modules.sso_debug import Authenticator as sso_authenticator
 from oncall.auth import init as init_auth
 
 sso_auth_manager = sso_authenticator()
-config = None
+test_config = {'auth': {'ldap_cert_path': 'ldap_cert.pem',
+                        'ldap_url': 'ldaps://lca1-ldap-vip.corp.linkedin.com',
+                        'ldap_user_suffix': '@linkedin.biz',
+                        'module': 'ldap',
+                        'sso_module': 'oncall.auth.modules.sso_debug'},
+               'db': {'conn': {'kwargs': {'charset': 'utf8',
+                                          'database': 'oncall-api',
+                                          'echo': True,
+                                          'host': '127.0.0.1',
+                                          'scheme': 'mysql+pymysql',
+                                          'user': 'root'},
+                               'str': '%(scheme)s://%(user)s@%(host)s/%(database)s?charset=%(charset)s'},
+                      'kwargs': {'pool_recycle': 3600}},
+               'server': {'host': '0.0.0.0', 'port': 8080},
+               'debug': True,
+               'session': {'encrypt_key': 'abc', 'sign_key': '123'}}
 
 
 class TestLogin(TestCase):
-    config = {'auth': {'ldap_cert_path': 'ldap_cert.pem',
-                       'ldap_url': 'ldaps://lca1-ldap-vip.corp.linkedin.com',
-                       'ldap_user_suffix': '@linkedin.biz',
-                       'module': 'ldap',
-                       'sso_module': 'oncall.auth.modules.sso_debug'},
-              'db': {'conn': {'kwargs': {'charset': 'utf8',
-                                         'database': 'oncall-api',
-                                         'echo': True,
-                                         'host': '127.0.0.1',
-                                         'scheme': 'mysql+pymysql',
-                                         'user': 'root'},
-                              'str': '%(scheme)s://%(user)s@%(host)s/%(database)s?charset=%(charset)s'},
-                     'kwargs': {'pool_recycle': 3600}},
-              'server': {'host': '0.0.0.0', 'port': 8080},
-              'debug': True,
-              'session': {'encrypt_key': 'abc', 'sign_key': '123'}}
-
+    config = test_config
     session_opts = {
         'session.type': 'cookie',
         'session.key': 'oncall-auth',
