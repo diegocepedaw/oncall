@@ -68,7 +68,7 @@ class TestLogin(TestCase):
         api = falcon.App(middleware=[
             ReqBodyMiddleware(),
         ])
-        init_auth(api, config['auth'])
+        init_auth(api, test_config['auth'])
         api.req_options.auto_parse_form_urlencoded = False
         self.app = api
         self.app.add_route('/login', login)
