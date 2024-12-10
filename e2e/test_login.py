@@ -43,7 +43,6 @@ class TestLogin(TestCase):
     class UserDummy(object):
         @login_required
         def on_get(self, req, resp, user):
-            print('### req context', req.context)
             check_user_auth(user, req)
 
     class TeamDummy(object):
@@ -131,8 +130,9 @@ class TestLogin(TestCase):
         re = self.simulate_get('/dummy/' + self.user_name, headers={'SSO-DEBUG-HEADER': self.user_name})
         assert re.status_code == 200
 
+        # user is not part of the team or an admin so check_user_auth fails despite login succeeding
         re = self.simulate_get('/dummy/' + self.user_name, headers={'SSO-DEBUG-HEADER': 'bad_user'})
-        assert re.status_code == 401
+        assert re.status_code == 403
 
     def test_team_auth(self):
         # Test good login, auth check on manager
