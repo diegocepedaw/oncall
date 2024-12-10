@@ -14,10 +14,7 @@ from oncall.auth.modules.sso_debug import Authenticator as sso_authenticator
 from oncall.auth import init as init_auth
 
 sso_auth_manager = sso_authenticator()
-test_config = {'auth': {'ldap_cert_path': 'ldap_cert.pem',
-                        'ldap_url': 'ldap://ldap.foo.biz',
-                        'ldap_user_suffix': '@linkedin.biz',
-                        'module': 'oncall.auth.modules.debug',
+test_config = {'auth': {'module': 'oncall.auth.modules.debug',
                         'sso_module': 'oncall.auth.modules.sso_debug'},
                'db': {'conn': {'kwargs': {'charset': 'utf8',
                                           'database': 'oncall-api',
@@ -46,11 +43,7 @@ class TestLogin(TestCase):
     class UserDummy(object):
         @login_required
         def on_get(self, req, resp, user):
-            print('\n\n\n\n#### 1', req.headers)
-            sso_check = sso_auth_manager.authenticate(req)
-            if sso_check:
-                return
-            print("#### 2", sso_check, user)
+            print('### req context', req.context)
             check_user_auth(user, req)
 
     class TeamDummy(object):
@@ -135,9 +128,11 @@ class TestLogin(TestCase):
         assert re.status_code == 200
 
     def test_sso_auth(self):
-        re = self.simulate_get('/dummy/' + self.user_name, headers={'SSO-DEBUG-HEADER': 'foo_user'})
-        assert re.text == ''
+        re = self.simulate_get('/dummy/' + self.user_name, headers={'SSO-DEBUG-HEADER': self.user_name})
         assert re.status_code == 200
+
+        re = self.simulate_get('/dummy/' + self.user_name, headers={'SSO-DEBUG-HEADER': 'bad_user'})
+        assert re.status_code == 401
 
     def test_team_auth(self):
         # Test good login, auth check on manager

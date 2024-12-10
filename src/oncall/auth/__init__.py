@@ -215,7 +215,7 @@ def _authenticate_user(req):
         cursor.close()
         connection.close()
     except KeyError:
-        raise HTTPUnauthorized('Unauthorized', 'User must be logged in sso_auth_manager=%s' % sso_auth_manager, '')
+        raise HTTPUnauthorized('Unauthorized', 'User must be logged in', '')
 
 
 authenticate_user = _authenticate_user
@@ -253,11 +253,6 @@ def init(application, config):
         sso_auth_manager = getattr(sso_auth, 'Authenticator')(config)
 
     if config.get('debug', False):
-        # from oncall.auth.modules.sso_debug import Authenticator as sso_authenticator
-        # sso_auth_manager = sso_authenticator()
-
-        print("### initializing debug auth config %s" % str(config), sso_auth_manager)
-
         def authenticate_user_test_wrapper(req):
             try:
                 _authenticate_user(req)
