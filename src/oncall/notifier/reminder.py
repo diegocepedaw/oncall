@@ -25,6 +25,29 @@ def create_reminder(user_id, mode, send_time, context, type_name, cursor):
                    (user_id, send_time, mode, context, type_name))
 
 
+def check_user_contact_info(user_id, cursor):
+    """Check if user has complete contact information (phone number for SMS/call)"""
+    # Check if user has SMS contact info
+    cursor.execute('''SELECT destination FROM user_contact
+                      WHERE user_id = %s AND mode_id = (SELECT id FROM contact_mode WHERE name = 'sms')''',
+                   (user_id,))
+    sms_contact = cursor.fetchone()
+
+    # Check if user has call contact info
+    cursor.execute('''SELECT destination FROM user_contact
+                      WHERE user_id = %s AND mode_id = (SELECT id FROM contact_mode WHERE name = 'call')''',
+                   (user_id,))
+    call_contact = cursor.fetchone()
+
+    missing_contacts = []
+    if not sms_contact:
+        missing_contacts.append('SMS Number')
+    if not call_contact:
+        missing_contacts.append('Call Number')
+
+    return missing_contacts
+
+
 def timestamp_to_human_str(timestamp, tz):
     dt = datetime.fromtimestamp(timestamp, timezone(tz))
     return ' '.join([dt.strftime('%Y-%m-%d %H:%M:%S'), tz])
@@ -85,11 +108,25 @@ def reminder(config):
         notifications = cursor.fetchall()
 
         for row in notifications:
+            # Check if user has missing contact information
+            missing_contacts = check_user_contact_info(row['user_id'], cursor)
+
             context = {'team': row['team'],
                        'start_time': timestamp_to_human_str(row['start'],
                                                             row['time_zone'] if row['time_zone'] else default_timezone),
                        'time_before': sec_to_human_str(row['time_before']),
                        'role': row['role']}
+
+            # Add contact update message if missing contact info
+            if missing_contacts:
+                contact_warning = (
+                    f"\n\nIMPORTANT: Your contact information is incomplete. "
+                    f"Please update your {', '.join(missing_contacts)} in your profile "
+                    f"ASAP to ensure you receive critical notifications."
+                )
+                context['contact_warning'] = contact_warning
+                logger.warning('User %s has missing contact information: %s', row['name'], ', '.join(missing_contacts))
+
             create_reminder(row['user_id'], row['mode'], row['start'] - row['time_before'],
                             context, 'oncall_reminder', cursor)
             logger.info('Created reminder with context %s for %s', context, row['name'])
