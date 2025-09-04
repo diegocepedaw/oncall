@@ -13,7 +13,7 @@ def _ph(n: int) -> str:
 
 def _chunks(seq, size=1000):
     for i in range(0, len(seq), size):
-        yield seq[i : i + size]
+        yield seq[i: i + size]
 
 
 def on_get(req, resp, service, role=None):
